@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Blockchain Log Verification</title>
+  </head>
+  <body>
+    <h1>Blockchain Log Verification</h1>
+    
+    <h2>Logs from MachineB</h2>
+    <div id="logs"></div>
+    
+    <h2>Blockchain from MachineC</h2>
+    <div id="blockchain"></div>
+    
+    <h2>Verification</h2>
+    <div id="verification"></div>
+    
+    <script>
+      // Fetch logs from MachineB
+      async function fetchLogs() {
+        const response = await fetch('http://localhost:5001/logs');
+        const logs = await response.json();
+        return logs;
+      }
+      
+      // Fetch blockchain data from MachineC
+      async function fetchBlockchain() {
+        const response = await fetch('http://localhost:5002/blockchain');
+        const chain = await response.json();
+        return chain;
+      }
+      
+      // Compute SHA-256 hash using the SubtleCrypto API
+      async function computeHash(message) {
+        const msgUint8 = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+      
+      // Compare logs with blockchain blocks
+      async function verifyLogs() {
+        const logs = await fetchLogs();
+        const blockchain = await fetchBlockchain();
+        let verificationHtml = '';
+        for (const log of logs) {
+          const message = log.log + log.timestamp;
+          const computedHash = await computeHash(message);
+          const block = blockchain.find(b => b.timestamp === log.timestamp);
+          const blockHash = block ? block.log_hash : 'Not found';
+          const match = (computedHash === blockHash);
+          verificationHtml += `<p>
+            <strong>Timestamp:</strong> ${log.timestamp}<br>
+            <strong>Log:</strong> ${log.log}<br>
+            <strong>Computed Hash:</strong> ${computedHash}<br>
+            <strong>Blockchain Hash:</strong> ${blockHash}<br>
+            <strong>Match:</strong> ${match ? 'Yes' : 'No'}
+          </p>`;
+        }
+        document.getElementById('verification').innerHTML = verificationHtml;
+      }
+      
+      // Display logs and blockchain on the page
+      async function displayData() {
+        const logs = await fetchLogs();
+        const blockchain = await fetchBlockchain();
+        
+        let logsHtml = '<ul>';
+        for (const log of logs) {
+          logsHtml += `<li>${log.timestamp}: ${log.log}</li>`;
+        }
+        logsHtml += '</ul>';
+        document.getElementById('logs').innerHTML = logsHtml;
+        
+        let blockchainHtml = '<ul>';
+        for (const block of blockchain) {
+          blockchainHtml += `<li>${block.timestamp} - Hash: ${block.log_hash}</li>`;
+        }
+        blockchainHtml += '</ul>';
+        document.getElementById('blockchain').innerHTML = blockchainHtml;
+        
+        verifyLogs();
+      }
+      
+      displayData();
+    </script>
+  </body>
+</html>

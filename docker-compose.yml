@@ -1,0 +1,37 @@
+version: "3.8"
+services:
+  machinea:
+    build: ./machineA
+    depends_on:
+      - machineb
+      - machinec
+      - machined
+      - machinee
+
+  machineb:
+    build: ./machineB
+    ports:
+      - "5001:5000"
+
+  machinec:
+    build: ./blockchain
+    container_name: machinec
+    ports:
+      - "5002:5000"
+
+  machined:
+    build: ./blockchain
+    container_name: machined
+    ports:
+      - "5003:5000"
+
+  machinee:
+    build: ./blockchain
+    container_name: machinee
+    ports:
+      - "5004:5000"
+  
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
